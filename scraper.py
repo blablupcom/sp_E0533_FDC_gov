@@ -10,7 +10,8 @@ from datetime import datetime
 from bs4 import BeautifulSoup
 
 
-#### FUNCTIONS 1.0
+#### FUNCTIONS 1.2
+import requests
 
 def validateFilename(filename):
     filenameregex = '^[a-zA-Z0-9]+_[a-zA-Z0-9]+_[a-zA-Z0-9]+_[0-9][0-9][0-9][0-9]_[0-9QY][0-9]$'
@@ -85,32 +86,40 @@ def convert_mth_strings ( mth_string ):
 
 #### VARIABLES 1.0
 
-entity_id = "E3632_EAEBC_gov"
-url = "https://www.epsom-ewell.gov.uk/council/about-council/financial-reports/payment-suppliers"
+entity_id = "E0533_FDC_gov"
+url = "http://www.fenland.gov.uk/article/2279/Local-Government-Transparency-Code-Payments-over-500-and-Credit-Card-transactions"
 errors = 0
 data = []
 
 
 #### READ HTML 1.0
 
-html = urllib2.urlopen(url)
-soup = BeautifulSoup(html, 'lxml')
+html = requests.get(url)
+soup = BeautifulSoup(html.text, 'lxml')
 
 #### SCRAPE DATA
 
-
-links = soup.find('table', attrs = {'class': 'sticky-enabled'}).find_all('a')
-for link in links:
-    if 'http' not in link['href']:
-        url = 'https://www.epsom-ewell.gov.uk'+link['href']
-    else:
-        url = link['href']
-    file_name = link.text
-    if '.csv' in url:
-        csvMth = file_name[:3]
-        csvYr = file_name[-4:]
-        csvMth = convert_mth_strings(csvMth.upper())
-        data.append([csvYr, csvMth, url])
+blocks = soup.find('div', attrs={'id':'list'}).find_all('a', href=True)
+for block in blocks:
+    if 'CSV' in block.text:
+        year_link = block['href']
+        year_html = requests.get(year_link)
+        year_soup = BeautifulSoup(year_html.text, 'lxml')
+        f_blocks = year_soup.find('ul', 'contentbtm').find_all('a', 'media')
+        for f_block in f_blocks:
+            if 'http' not in f_block['href']:
+                url = 'http://www.fenland.gov.uk/' + f_block['href']
+            else:
+                url = f_block['href']
+            file_name = f_block.text.strip()
+            csvMth = file_name.split()[1][:3]
+            csvYr = file_name[:4]
+            if '[' in csvMth:
+                csvMth = file_name.split('_')[1][:3].strip()
+            if '-' in csvMth:
+                csvMth = file_name.split('_')[1][:3].strip()
+            csvMth = convert_mth_strings(csvMth.upper())
+            data.append([csvYr, csvMth, url])
 
 
 #### STORE DATA 1.0
