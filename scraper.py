@@ -103,7 +103,11 @@ blocks = soup.find('div', attrs={'id':'list'}).find_all('a', href=True)
 for block in blocks:
     if 'CSV' in block.text:
         year_link = block['href']
-        year_html = requests.get(year_link)
+        if 'http' not in year_link:
+            year_url = 'http://www.fenland.gov.uk/' + year_link
+        else:
+            year_url = year_link
+        year_html = requests.get(year_url)
         year_soup = BeautifulSoup(year_html.text, 'lxml')
         f_blocks = year_soup.find('ul', 'contentbtm').find_all('a', 'media')
         for f_block in f_blocks:
